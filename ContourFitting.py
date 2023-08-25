@@ -5,18 +5,22 @@ import cv2
 import matplotlib.pyplot as plt
 
 def add_alpha_channel(img):
-    alpha_mask = np.sum(img,axis =-1)>0
+    alpha_mask = np.sum(img,axis =-1)!=255*3
     alpha = np.uint8(alpha_mask*255)
     res = np.dstack((img,alpha))
     return res
 
 df = pd.read_csv("spiral.csv")
 img = cv2.imread("simulation\electrode.png", cv2.IMREAD_UNCHANGED)
+scaling_factor = 0.5
+total_length = 3800 #in milimeter
+#chage to RGB color space
 img = img[:, :, [2, 1, 0]]
-w,h = (int(img.shape[1]/2),int(img.shape[0]/2 ))
+#resize image
+w,h = (int(img.shape[1]*scaling_factor),int(img.shape[0]*scaling_factor))
 img = cv2.resize(img,(w,h))
 img = add_alpha_channel(img)
-total_length = 3800
+#find pixel2real ratio
 pixel2real = total_length/w #in milimeter
 lengths = np.linspace(0,total_length,img.shape[1])
 #Pixel position for mesh

@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 class Electrode:
-    def __init__(self, height, width, overhang_length,flag_widths, actual_ratio):
+    def __init__(self, height, width, overhang_length,flag_widths, actual_ratio, flag_direction = "up"):
         """
         _summary_:
         Initialize the electrode simulation class
@@ -16,12 +16,16 @@ class Electrode:
             overhang_length (_type_): Overhang length of the electrode in mm
             flag_widths (_type_): Flag width of the electrode in mm
             actual_ratio (_type_): Actual ratio of the electrode in mm/pixel
+            flag_direction (str, optional): The direction of the flag. Defaults to "up".
         """
         self.height = height
         self.width = width
         self.flag_width = flag_widths
         self.overhang_length = overhang_length
         self.actual_ratio = actual_ratio
+        if flag_direction not in ["up", "down"]:
+            raise ValueError("flag_direction must be either up or down")
+        self.flag_direction = flag_direction
         self.color_code()
 
     def color_code(
@@ -45,7 +49,7 @@ class Electrode:
     def add_alpha_channel(self):
         """
         _summary_:
-        Add alpha channel to the electrode image
+        Add alpha channel to the electrode image in BGR format
         """
         b, g, r = cv2.split(self.electrode)
         
@@ -66,7 +70,7 @@ class Electrode:
         flag_top:int = int(flag_base/2)
         flag_height:int = int(flag_base*1.3)
         img_height:int = flag_height+1
-        flags = np.zeros((img_height,w,3), dtype=np.uint8)
+        flags = np.ones((img_height,w,3), dtype=np.uint8)*255
         oh_length: int = int(self.overhang_length/self.actual_ratio)
         start_x:int = oh_length
         while start_x < flags.shape[1] - flag_base:
@@ -81,10 +85,13 @@ class Electrode:
             cv2.fillPoly(flags, [pts], tuple(self.color["flag"]))
             # Move start_x
             start_x += flag_base
-
-        self. electrode = np.vstack((flags,active_mat))
-        #self. add_alpha_channel()
-
+        # Add flag to active material
+        if self.flag_direction == "up":
+            electrode = np.vstack((flags,active_mat))
+        else:
+            flags = np.flip(flags, axis=0)
+            electrode = np.vstack((active_mat,flags))
+        self.electrode = electrode
     def defect_simulation(self):
         pass
 
@@ -143,16 +150,7 @@ def create_spiral(wraps, points_per_wrap, desired_total_length):
 
     print(f'Scale: {scale}, Core radius: {core_radius}, Total length: {total_length}')
 
-
-
-
-
-if __name__ == "__main__":
-    e = Electrode(70,3800,300,5,0.03)
-    e.gen_simulation()
-    StiImg = e.electrode
-    #cv2.imwrite(r"C:\Users\Lenovo\Desktop\Personal Research\DissectionInspection\simulation\electrode.png",img)
-    #create_spiral(scale=0.04546240964121108, wraps=55, points_per_wrap=100, core_radius=3.1421354330354223)
+def shooting_simulation():
     # h,w,_ = StiImg.shape
     # width = 6000 
     # width_start = 4000
@@ -167,3 +165,13 @@ if __name__ == "__main__":
     #     StiImg_s=cv2.resize(StiImg, (1900,50))
     #     cv2.imshow("Demo",StiImg_s)
     #     cv2.waitKey(100)
+    pass
+
+
+
+if __name__ == "__main__":
+    e = Electrode(70,3800,300,5,0.03,flag_direction="up")
+    #e.color_code(act_mat=[0,0,0],flag=[195, 195, 195]) #this is cathode setup
+    e.gen_simulation()
+    StiImg = e.electrode
+    cv2.imwrite(r"simulation\anode.png",StiImg)
