@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import pandas as pd
+import os
 #generate Jelly roll simulation
 #input parms:  Length, height
 #strutural component: tabs, electrode surface
@@ -29,6 +31,15 @@ class Electrode:
             "flag": flag
         }
 
+    def add_alpha_channel(self):
+        b, g, r = cv2.split(self.electrode)
+        
+        alpha = np.where((b==0) & (g==0) & (r==0), 0, 255)
+        alpha = alpha.astype(np.uint8)
+        rgba_img = cv2.merge([b, g, r, alpha])
+        rgba_img = rgba_img[:, :, [2, 1, 0, 3]]
+        self.electrode = rgba_img
+
     def gen_simulation(self):
         h,w = int(self.height/self.actual_ratio), int(self.width/self.actual_ratio) 
         active_mat = np.ones((h,w,3),np.uint8)*np.array(self.color["act_mat"], np.uint8)
@@ -37,7 +48,8 @@ class Electrode:
         flag_height:int = int(flag_base*1.3)
         img_height:int = flag_height+1
         flags = np.zeros((img_height,w,3), dtype=np.uint8)
-        start_x:int = self.overhang_length
+        oh_length: int = int(self.overhang_length/self.actual_ratio)
+        start_x:int = oh_length
         while start_x < flags.shape[1] - flag_base:
             # Define trapezoid points
             pts = np.array([[start_x, img_height], 
@@ -52,15 +64,78 @@ class Electrode:
             start_x += flag_base
 
         self. electrode = np.vstack((flags,active_mat))
+        #self. add_alpha_channel()
+
     def defect_simulation(self):
         pass
 
+def create_spiral(wraps, points_per_wrap, desired_total_length):
+    # Spiral expansion factor (initial guess)
+    scale = 0.04546240964121108
+
+    # Core radius (initial guess)
+    core_radius = 3.1421354330354223
+
+    while True:
+        # Create the t parameter space, adding core radius after calculating theta
+        t = np.linspace(0, 2 * np.pi * wraps, points_per_wrap * wraps)
+        # Create spiral coordinates
+        r = scale * t + core_radius
+        # Create spiral coordinates
+        x = r * np.cos(t)
+        y = r * np.sin(t)
+        # Calculate length between points using Pythagorean theorem
+        length = np.sqrt(np.diff(r)**2 + (r[:-1] * np.diff(t))**2)
+        length = np.insert(length, 0, 0)
+
+        # Calculate total length
+        total_length = np.sum(length)
+
+        # Update scale based on ratio of total length to desired total length
+        scale *= desired_total_length / total_length
+
+        # Update core radius to be 1/8 of final radius
+        core_radius = r.max() / 8
+
+        # Check if total length is close to desired total length
+        if np.abs(total_length - desired_total_length) < 1e-3:
+            break
+
+    # Create dataframe
+    df = pd.DataFrame({'x': x, 'y': y, 'r': r, 'theta': t, 'length': length, 'total_length': np.cumsum(length)})
+
+    # Save to CSV
+    df.to_csv('spiral.csv', index=False)
+
+    # Plot the spiral
+    plt.figure(figsize=(6,6))
+    plt.plot(x, y)
+    plt.gca().set_aspect('equal', adjustable='box')  # to keep the aspect ratio
+    plt.show()
+
+    print(f'Scale: {scale}, Core radius: {core_radius}, Total length: {total_length}')
+
+
+
+
+
 if __name__ == "__main__":
-    e = Electrode(40,400,80,5,0.3)
+    e = Electrode(70,3800,300,5,0.03)
     e.gen_simulation()
-    img = e.electrode
-    cv2.imwrite(r"C:\Users\Lenovo\Desktop\Personal Research\DissectionInspection\simulation\electrode.png",img)
-    # Display image
-    #cv2.imshow('Image', img)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+    StiImg = e.electrode
+    #cv2.imwrite(r"C:\Users\Lenovo\Desktop\Personal Research\DissectionInspection\simulation\electrode.png",img)
+    #create_spiral(scale=0.04546240964121108, wraps=55, points_per_wrap=100, core_radius=3.1421354330354223)
+    # h,w,_ = StiImg.shape
+    # width = 6000 
+    # width_start = 4000
+    # widthNum = np.arange(0,w,width_start)
+    # for w in widthNum:
+    #     img=StiImg[:,w:w+6000]
+    #     #strName=str(h)+"-"+str(w)+".png"
+    #     #cv2.imwrite(os.path.join(path,strName), img)
+    #     white_rect = np.ones(img.shape, dtype=np.uint8) * 255
+    #     res = cv2.addWeighted(img, 0.5, white_rect, 0.5, 1.0)
+    #     StiImg[:,w:w+width] = res
+    #     StiImg_s=cv2.resize(StiImg, (1900,50))
+    #     cv2.imshow("Demo",StiImg_s)
+    #     cv2.waitKey(100)
