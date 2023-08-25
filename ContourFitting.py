@@ -5,14 +5,9 @@ import cv2
 import matplotlib.pyplot as plt
 
 def add_alpha_channel(img):
-    #b, g, r = cv2.split(img)
-    
-    #alpha = np.where((b==0) & (g==0) & (r==0), 0, 255)
-    alpha = np.sum(img,axis =-1)>0
-    alpha = np.uint8(alpha*255)
-    #alpha = alpha.astype(np.uint8)
+    alpha_mask = np.sum(img,axis =-1)>0
+    alpha = np.uint8(alpha_mask*255)
     res = np.dstack((img,alpha))
-    #rgba_img = cv2.merge([r, g, b, alpha])
     return res
 
 df = pd.read_csv("spiral.csv")

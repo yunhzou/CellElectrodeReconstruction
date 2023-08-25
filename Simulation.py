@@ -3,18 +3,23 @@ import cv2
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
-#generate Jelly roll simulation
-#input parms:  Length, height
-#strutural component: tabs, electrode surface
-#color code: tabs: golden, cathode: dark grey, anode: balck, defects: white, golden strips
-
 
 class Electrode:
-    def __init__(self, height, width, overhang_length,flag_width, actual_ratio):
-        "actual ratio: pixel to mm"
+    def __init__(self, height, width, overhang_length,flag_widths, actual_ratio):
+        """
+        _summary_:
+        Initialize the electrode simulation class
+
+        Args:
+            height (_type_): The height of the flattened electrode
+            width (_type_): The width of the flattened electrode
+            overhang_length (_type_): Overhang length of the electrode in mm
+            flag_widths (_type_): Flag width of the electrode in mm
+            actual_ratio (_type_): Actual ratio of the electrode in mm/pixel
+        """
         self.height = height
         self.width = width
-        self.flag_width = flag_width
+        self.flag_width = flag_widths
         self.overhang_length = overhang_length
         self.actual_ratio = actual_ratio
         self.color_code()
@@ -24,14 +29,24 @@ class Electrode:
             act_mat = [128,128,128],
             flag = [51, 115, 184]
                    ):
-        
-        """BGR format"""
+        """
+        _summary_:
+        Provide self.color with color code for active material and flag
+
+        Args:
+            act_mat (list, optional): a list describe color code of the active material. Defaults to [128,128,128].
+            flag (list, optional): a list describe color code of the flags. Defaults to [51, 115, 184].
+        """
         self.color = {
             "act_mat":act_mat,
             "flag": flag
         }
 
     def add_alpha_channel(self):
+        """
+        _summary_:
+        Add alpha channel to the electrode image
+        """
         b, g, r = cv2.split(self.electrode)
         
         alpha = np.where((b==0) & (g==0) & (r==0), 0, 255)
@@ -41,6 +56,10 @@ class Electrode:
         self.electrode = rgba_img
 
     def gen_simulation(self):
+        """
+        _summary_:
+        Generate the electrode simulation image
+        """
         h,w = int(self.height/self.actual_ratio), int(self.width/self.actual_ratio) 
         active_mat = np.ones((h,w,3),np.uint8)*np.array(self.color["act_mat"], np.uint8)
         flag_base:int = int(self.flag_width/self.actual_ratio)
@@ -70,6 +89,15 @@ class Electrode:
         pass
 
 def create_spiral(wraps, points_per_wrap, desired_total_length):
+    """
+    _summary_:
+    Create a spiral with the specified number of wraps, points per wrap, and desired total length
+
+    Args:
+        wraps (_type_): How many wraps the spiral should have
+        points_per_wrap (_type_): How many points per wrap the spiral should have
+        desired_total_length (_type_): The desired total length of the spiral
+    """
     # Spiral expansion factor (initial guess)
     scale = 0.04546240964121108
 

@@ -1,0 +1,5 @@
+{
+    "autoDocstring.docstringFormat": "google",
+    "autoDocstring.startOnNewLine": true,
+    "autoDocstring.includeName": false
+}
