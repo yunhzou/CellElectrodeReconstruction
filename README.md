@@ -1,5 +1,11 @@
 ﻿electrode reconstruction project
 
+Dependency: 
+Pyvista
+opencv-python
+numpy
+pandas
+
 Author: Jackie(Yunheng) Zou  
 
 Currently: University of Waterloo Nanotechnology Engineering student  
